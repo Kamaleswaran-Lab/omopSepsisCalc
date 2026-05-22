@@ -19,13 +19,6 @@
   \set vocab_schema vocabulary
 \endif
 
--- Azure tuning
-SET work_mem = '4GB';
-SET maintenance_work_mem = '2GB';
-SET max_parallel_workers_per_gather = 0;
-SET temp_buffers = '1GB';
-SET synchronous_commit = off;
-SET statement_timeout = 0;
 
 -- core views (each \ir on its own line!)
 \ir 00_create_schemas.sql
