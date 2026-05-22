@@ -19,6 +19,15 @@
   \set vocab_schema vocabulary
 \endif
 
+-- Azure tuning (Removed unsafe hardcoded memory/parallelism limits)
+-- SET work_mem = '4GB';
+-- SET maintenance_work_mem = '2GB';
+-- SET max_parallel_workers_per_gather = 0;
+-- SET temp_buffers = '1GB';
+-- SET synchronous_commit = off;
+
+-- Keep this for long-running analytical queries
+SET statement_timeout = 0;
 
 -- core views (each \ir on its own line!)
 \ir 00_create_schemas.sql
@@ -102,13 +111,21 @@ DROP TABLE IF EXISTS :results_schema.cdc_ase_cohort_final CASCADE;
 DROP TABLE IF EXISTS :results_schema.sepsis_cohort_comparison CASCADE;
 \ir 61_create_sepsis_cohort_comparison.sql
 
--- Reset and analyze
-RESET work_mem;
-RESET maintenance_work_mem;
-RESET max_parallel_workers_per_gather;
-RESET temp_buffers;
-RESET synchronous_commit;
+-- Reset and analyze (Commented out resets matching the SETs above)
+-- RESET work_mem;
+-- RESET maintenance_work_mem;
+-- RESET max_parallel_workers_per_gather;
+-- RESET temp_buffers;
+-- RESET synchronous_commit;
 
 ANALYZE :results_schema.sofa_hourly;
 ANALYZE :results_schema.sepsis3_cohort;
 ANALYZE :results_schema.cdc_ase_cohort_final;
+
+-- In-line Cohort Sanity Check
+SELECT 
+    'SOFA Missingness Check' AS metric,
+    COUNT(*) AS total_sepsis3_episodes,
+    ROUND(100.0 * SUM(CASE WHEN max_components_observed < 4 THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_episodes_with_high_missingness
+FROM :results_schema.sepsis3_enhanced
+WHERE meets_sepsis3 = true;
