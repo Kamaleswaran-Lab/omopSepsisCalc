@@ -6,12 +6,6 @@ DROP TABLE IF EXISTS :results_schema.sepsis3_enhanced CASCADE;
 DROP TABLE IF EXISTS :results_schema.sepsis3_cohort CASCADE;
 DROP TABLE IF EXISTS :results_schema.sepsis3 CASCADE;
 
--- Performance settings
-SET work_mem = '8GB';
-SET max_parallel_workers_per_gather = 4;
-SET enable_nestloop = on;
-SET synchronous_commit = off;
-
 -- 1) Build infection windows
 CREATE UNLOGGED TABLE :results_schema.sepsis3_windows AS
 SELECT
