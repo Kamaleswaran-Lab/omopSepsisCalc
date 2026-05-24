@@ -1,40 +1,23 @@
--- RUN_ALL_enhanced.sql
+-- RUN_ALL_enhanced_fixed.sql
 -- Canonical multi-site OMOP SOFA / Sepsis-3 / CDC ASE runner.
---
+-- Fixes: index timing, cascade drops, ANALYZE order, and infection-onset dependency
+
 -- Override schemas from psql as needed:
--- psql ... -v results_schema=results_site_a -v cdm_schema=omopcdm -v vocab_schema=vocabulary -f sql/RUN_ALL_enhanced.sql
+-- psql ... -v results_schema=results_site_a -v cdm_schema=omopcdm -v vocab_schema=vocabulary -f sql/RUN_ALL_enhanced_fixed.sql
 
-\if :{?results_schema}
-\else
-  \set results_schema results
-\endif
+\if :{?results_schema} \else \set results_schema results \endif
+\if :{?cdm_schema} \else \set cdm_schema omopcdm \endif
+\if :{?vocab_schema} \else \set vocab_schema vocabulary \endif
 
-\if :{?cdm_schema}
-\else
-  \set cdm_schema omopcdm
-\endif
-
-\if :{?vocab_schema}
-\else
-  \set vocab_schema vocabulary
-\endif
-
--- Azure tuning (Removed unsafe hardcoded memory/parallelism limits)
--- SET work_mem = '4GB';
--- SET maintenance_work_mem = '2GB';
--- SET max_parallel_workers_per_gather = 0;
--- SET temp_buffers = '1GB';
--- SET synchronous_commit = off;
-
--- Keep this for long-running analytical queries
 SET statement_timeout = 0;
 
--- core views (each \ir on its own line!)
+-- 1. Core setup
 \ir 00_create_schemas.sql
 \ir 01_create_assumptions_table.sql
 \ir 03_create_concept_sets.sql
-\ir 02_create_indexes.sql
+-- NOTE: 02_create_indexes.sql moved to AFTER views are built (see below)
 
+-- 2. Core clinical views
 DROP VIEW IF EXISTS :results_schema.view_labs_core CASCADE;
 \ir 10_view_labs_core.sql
 
@@ -56,7 +39,7 @@ DROP VIEW IF EXISTS :results_schema.view_urine_24h CASCADE;
 DROP VIEW IF EXISTS :results_schema.view_rrt CASCADE;
 \ir 16_view_rrt.sql
 
--- infection windows
+-- 3. Infection windows
 DROP VIEW IF EXISTS :results_schema.view_pao2_fio2_pairs CASCADE;
 \ir 20_view_pao2_fio2_pairs.sql
 
@@ -68,14 +51,22 @@ DROP VIEW IF EXISTS :results_schema.view_cultures CASCADE;
 
 DROP VIEW IF EXISTS :results_schema.view_infection_onset CASCADE;
 \ir 23_view_infection_onset_enhanced.sql
+-- IMPORTANT: ensure 23_view_infection_onset_enhanced.sql contains:
+--   JOIN view_cultures c ON c.person_id = fa.person_id 
+--                       AND c.visit_occurrence_id = fa.visit_occurrence_id
+--   AND (route IN (4171047,4302612) OR route IS NULL) -- pragmatic
 
--- SOFA components
+-- 4. Build indexes AFTER views exist (was too early before)
+\ir 02_create_indexes.sql
+
+-- 5. SOFA components
 DROP VIEW IF EXISTS :results_schema.vw_sofa_components CASCADE;
 \ir 30_view_sofa_components.sql
 
+DROP TABLE IF EXISTS :results_schema.sofa_hourly CASCADE;
 \ir 31_create_sofa_hourly.sql
 
--- Sepsis-3
+-- 6. Sepsis-3
 DROP TABLE IF EXISTS :results_schema.sepsis3_windows CASCADE;
 DROP TABLE IF EXISTS :results_schema.sepsis3_enhanced CASCADE;
 DROP TABLE IF EXISTS :results_schema.sepsis3_cohort CASCADE;
@@ -85,7 +76,7 @@ DROP TABLE IF EXISTS :results_schema.sepsis3 CASCADE;
 DROP TABLE IF EXISTS :results_schema.sepsis3_enhanced_collapsed CASCADE;
 \ir 41_create_sepsis3_collapsed_48h.sql
 
--- CDC ASE Tables
+-- 7. CDC ASE
 DROP TABLE IF EXISTS :results_schema.ase_parameters CASCADE;
 \ir 50_cdc_ase_parameters.sql
 
@@ -107,25 +98,21 @@ DROP TABLE IF EXISTS :results_schema.ase_with_sofa CASCADE;
 DROP TABLE IF EXISTS :results_schema.cdc_ase_cohort_final CASCADE;
 \ir 56_cdc_ase_cohort_final.sql
 
--- Comparison
+-- 8. Comparison
 DROP TABLE IF EXISTS :results_schema.sepsis_cohort_comparison CASCADE;
 \ir 61_create_sepsis_cohort_comparison.sql
 
--- Reset and analyze (Commented out resets matching the SETs above)
--- RESET work_mem;
--- RESET maintenance_work_mem;
--- RESET max_parallel_workers_per_gather;
--- RESET temp_buffers;
--- RESET synchronous_commit;
-
+-- 9. Analyze at the END (after all tables built)
 ANALYZE :results_schema.sofa_hourly;
+ANALYZE :results_schema.sepsis3_enhanced;
 ANALYZE :results_schema.sepsis3_cohort;
 ANALYZE :results_schema.cdc_ase_cohort_final;
+ANALYZE :results_schema.sepsis_cohort_comparison;
 
--- In-line Cohort Sanity Check
-SELECT 
-    'SOFA Missingness Check' AS metric,
-    COUNT(*) AS total_sepsis3_episodes,
-    ROUND(100.0 * SUM(CASE WHEN max_components_observed < 4 THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_episodes_with_high_missingness
+-- 10. Sanity check
+SELECT
+  'SOFA Missingness Check' AS metric,
+  COUNT(*) AS total_sepsis3_episodes,
+  ROUND(100.0 * SUM(CASE WHEN max_components_observed < 4 THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS pct_episodes_with_high_missingness
 FROM :results_schema.sepsis3_enhanced
 WHERE meets_sepsis3 = true;
