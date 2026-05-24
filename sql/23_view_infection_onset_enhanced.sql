@@ -30,7 +30,8 @@ effective_routes AS (
   SELECT route_concept_id FROM vocab_iv_routes
   UNION
   SELECT route_concept_id FROM site_top_routes WHERE NOT EXISTS (SELECT 1 FROM vocab_iv_routes)
-  UNION ALL SELECT * FROM (VALUES (4171047),(4132161),(4132254),(4132711),(4302612)) AS t(route_concept_id)
+  -- STRICT: only IV and IM, NO oral/enteral routes
+  UNION ALL SELECT * FROM (VALUES (4171047),(4302612)) AS t(route_concept_id)
 ),
 antibiotics AS (
   SELECT
@@ -42,7 +43,7 @@ antibiotics AS (
     CASE WHEN de.route_concept_id IN (SELECT route_concept_id FROM effective_routes) THEN 1 ELSE 0 END AS is_iv_systemic
   FROM :results_schema.view_antibiotics de
 ),
--- STRICT FILTER: Remove the lazy route check. Only allow proven systemic/IV.
+-- STRICT FILTER: Only allow proven systemic/IV.
 filtered_antibiotics AS (
   SELECT a.*
   FROM antibiotics a
