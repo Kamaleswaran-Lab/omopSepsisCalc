@@ -9,6 +9,7 @@
 \if :{?cdm_schema} \else \set cdm_schema omopcdm \endif
 \if :{?vocab_schema} \else \set vocab_schema vocabulary \endif
 
+\set ON_ERROR_STOP on
 SET statement_timeout = 0;
 
 -- 1. Core setup

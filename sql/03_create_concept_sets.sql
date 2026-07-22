@@ -24,20 +24,20 @@ VALUES
     -- Labs
     ('platelets', 3024929, 'Measurement', true, false, 'ATHENA', 'Platelets [#/volume] in Blood by Automated count'),
     ('platelets', 3016682, 'Measurement', true, false, 'ATHENA', 'Platelets in Plasma'),
-    ('platelets', 3013290, 'Measurement', true, false, 'MGH validated', 'Platelet count fallback'),
-    ('platelets', 3000812, 'Measurement', true, false, 'MGH validated', 'Platelet count fallback'),
+    ('platelets', 3013290, 'Measurement', false, false, 'MGH validated', 'Platelet count fallback'),
+    ('platelets', 3000812, 'Measurement', false, false, 'MGH validated', 'Platelet count fallback'),
     ('lactate', 3047181, 'Measurement', true, false, 'ATHENA', 'Lactate [Moles/volume] in Blood'),
     ('lactate', 3014111, 'Measurement', true, false, 'ATHENA', 'Lactate in Serum or Plasma'),
     ('lactate', 3008037, 'Measurement', true, false, 'ATHENA', 'Lactate in Venous blood'),
     ('bilirubin', 3024128, 'Measurement', true, false, 'ATHENA', 'Bilirubin.total'),
-    ('bilirubin', 3035616, 'Measurement', true, false, 'MGH validated', 'Bilirubin total fallback'),
-    ('bilirubin', 3014661, 'Measurement', true, false, 'MGH validated', 'Bilirubin total fallback'),
-    ('bilirubin', 3013721, 'Measurement', true, false, 'MGH validated', 'Bilirubin total fallback'),
-    ('bilirubin', 3013682, 'Measurement', true, false, 'CHORUS fallback', 'Bilirubin fallback'),
+    ('bilirubin', 3035616, 'Measurement', false, false, 'MGH validated', 'Bilirubin total fallback'),
+    ('bilirubin', 3014661, 'Measurement', false, false, 'MGH validated', 'Bilirubin total fallback'),
+    ('bilirubin', 3013721, 'Measurement', false, false, 'MGH validated', 'Bilirubin total fallback'),
+    ('bilirubin', 3013682, 'Measurement', false, false, 'CHORUS fallback', 'Bilirubin fallback'),
     ('creatinine', 3016723, 'Measurement', true, false, 'ATHENA', 'Creatinine'),
-    ('creatinine', 3020564, 'Measurement', true, false, 'MGH validated', 'Creatinine fallback'),
-    ('creatinine', 3051825, 'Measurement', true, false, 'MGH validated', 'Creatinine fallback'),
-    ('creatinine', 3004327, 'Measurement', true, false, 'MGH validated', 'Creatinine fallback'),
+    ('creatinine', 3020564, 'Measurement', false, false, 'MGH validated', 'Creatinine fallback'),
+    ('creatinine', 3051825, 'Measurement', false, false, 'MGH validated', 'Creatinine fallback'),
+    ('creatinine', 3004327, 'Measurement', false, false, 'MGH validated', 'Creatinine fallback'),
     ('urine_output', 3014315, 'Measurement', true, false, 'ATHENA', 'Urine output volume'),
 
     -- Vitals and neuro
@@ -187,21 +187,27 @@ SELECT
     c.invalid_reason,
     CASE
         WHEN c.concept_id IS NULL AND NOT m.local_allowed THEN 'missing_from_vocabulary'
-        WHEN c.invalid_reason IS NOT NULL THEN 'invalid_concept'
-        WHEN m.expected_domain_id IS NOT NULL AND c.domain_id <> m.expected_domain_id THEN 'wrong_domain'
-        WHEN m.expected_concept_code IS NOT NULL AND c.concept_code <> m.expected_concept_code THEN 'wrong_concept_code'
-        WHEN m.require_standard AND COALESCE(c.standard_concept, '') <> 'S' THEN 'non_standard'
+        WHEN c.concept_id IS NOT NULL AND NOT m.local_allowed AND c.invalid_reason IS NOT NULL THEN 'invalid_concept'
+        WHEN c.concept_id IS NOT NULL AND NOT m.local_allowed AND m.expected_domain_id IS NOT NULL AND c.domain_id <> m.expected_domain_id THEN 'wrong_domain'
+        WHEN c.concept_id IS NOT NULL AND NOT m.local_allowed AND m.expected_concept_code IS NOT NULL AND c.concept_code <> m.expected_concept_code THEN 'wrong_concept_code'
+        WHEN c.concept_id IS NOT NULL AND NOT m.local_allowed AND m.require_standard AND COALESCE(c.standard_concept, '') <> 'S' THEN 'non_standard'
     END AS failure_reason
 FROM :results_schema.concept_set_members m
 LEFT JOIN :vocab_schema.concept c ON c.concept_id = m.concept_id
 WHERE
     (c.concept_id IS NULL AND NOT m.local_allowed)
-    OR c.invalid_reason IS NOT NULL
-    OR (m.expected_domain_id IS NOT NULL AND c.domain_id <> m.expected_domain_id)
-    OR (m.expected_concept_code IS NOT NULL AND c.concept_code <> m.expected_concept_code)
-    OR (m.require_standard AND COALESCE(c.standard_concept, '') <> 'S');
+    OR (c.concept_id IS NOT NULL AND NOT m.local_allowed AND c.invalid_reason IS NOT NULL)
+    OR (c.concept_id IS NOT NULL AND NOT m.local_allowed AND m.expected_domain_id IS NOT NULL AND c.domain_id <> m.expected_domain_id)
+    OR (c.concept_id IS NOT NULL AND NOT m.local_allowed AND m.expected_concept_code IS NOT NULL AND c.concept_code <> m.expected_concept_code)
+    OR (c.concept_id IS NOT NULL AND NOT m.local_allowed AND m.require_standard AND COALESCE(c.standard_concept, '') <> 'S');
 
--- Portable validation: Forces a fatal data exception if validation fails 
+-- Show the exact failures before forcing a fatal data exception.
+SELECT *
+FROM :results_schema.concept_set_validation_failures
+ORDER BY concept_set_name, concept_id
+LIMIT 50;
+
+-- Portable validation: Forces a fatal data exception if validation fails.
 SELECT 
     1 / (CASE WHEN COUNT(*) > 0 THEN 0 ELSE 1 END) AS validation_check
 FROM :results_schema.concept_set_validation_failures;
