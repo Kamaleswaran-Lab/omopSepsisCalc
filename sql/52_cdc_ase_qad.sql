@@ -8,7 +8,8 @@ WITH abx_days AS (
   SELECT DISTINCT
     de.person_id,
     COALESCE(de.visit_occurrence_id, inferred_visit.visit_occurrence_id) AS visit_occurrence_id,
-    COALESCE(de.drug_exposure_start_datetime, de.drug_exposure_start_date::timestamp)::date AS abx_day
+    COALESCE(de.drug_exposure_start_datetime, de.drug_exposure_start_date::timestamp)::date AS abx_day,
+    'drug_exposure'::text AS src_name
   FROM :cdm_schema.drug_exposure de
   JOIN :results_schema.concept_set_members cs
     ON cs.concept_id = de.drug_concept_id
@@ -54,6 +55,7 @@ SELECT
   visit_occurrence_id,
   MIN(abx_day) AS qad_start,
   MAX(abx_day) AS qad_end,
+  MIN(src_name) AS src_name,
   COUNT(*) AS antimicrobial_days_observed,
   ((MAX(abx_day) - MIN(abx_day)) + 1)::integer AS qad_days,
   ((MAX(abx_day) - MIN(abx_day)) + 1)::integer AS qad_duration

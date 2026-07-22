@@ -11,6 +11,7 @@ WITH culture_candidates AS (
     c.specimen_id,
     c.specimen_datetime,
     c.source_concept_id,
+    c.src_name,
     COALESCE(c.visit_occurrence_id, inferred_visit.visit_occurrence_id) AS visit_occurrence_id
   FROM :results_schema.view_cultures c
   LEFT JOIN LATERAL (
@@ -34,5 +35,6 @@ SELECT
   specimen_datetime AS culture_start,
   NULL::timestamp AS antibiotic_start,
   source_concept_id,
+  src_name,
   'blood_culture'::text AS culture_site
 FROM culture_candidates;

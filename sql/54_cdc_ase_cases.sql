@@ -4,6 +4,7 @@ SELECT
   od.person_id,
   COALESCE(od.visit_occurrence_id, qad.visit_occurrence_id) AS visit_occurrence_id,
   od.culture_datetime AS infection_onset,
+  od.src_name,
   qad.qad_start,
   qad.qad_end,
   qad.qad_days,

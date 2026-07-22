@@ -8,6 +8,7 @@ WITH lab_windows AS (
     bc.person_id,
     bc.visit_occurrence_id,
     bc.culture_datetime,
+    bc.src_name,
     MAX(l.lactate) FILTER (
       WHERE l.measurement_datetime BETWEEN bc.culture_datetime - INTERVAL '2 days'
                                        AND bc.culture_datetime + INTERVAL '2 days'
@@ -41,12 +42,13 @@ WITH lab_windows AS (
     ON l.person_id = bc.person_id
    AND l.measurement_datetime BETWEEN bc.culture_datetime - INTERVAL '365 days'
                                   AND bc.culture_datetime + INTERVAL '2 days'
-  GROUP BY bc.person_id, bc.visit_occurrence_id, bc.culture_datetime
+  GROUP BY bc.person_id, bc.visit_occurrence_id, bc.culture_datetime, bc.src_name
 )
 SELECT
   bc.person_id,
   bc.visit_occurrence_id,
   bc.culture_datetime,
+  bc.src_name,
 
   -- 1. Vasopressors (+/-2 days)
   EXISTS (
@@ -133,4 +135,5 @@ FROM :results_schema.cdc_ase_cultures bc
 JOIN lab_windows lw
   ON lw.person_id = bc.person_id
  AND lw.culture_datetime = bc.culture_datetime
+ AND lw.src_name = bc.src_name
  AND lw.visit_occurrence_id IS NOT DISTINCT FROM bc.visit_occurrence_id;

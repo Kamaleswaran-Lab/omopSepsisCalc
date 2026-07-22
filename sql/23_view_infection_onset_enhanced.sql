@@ -1,5 +1,7 @@
 -- sql/23_view_infection_onset_enhanced.sql
--- Sepsis-3 infection onset: STRICT IV/Systemic routing.
+-- Sepsis-3 infection onset. Explicit IV/IM routes are systemic; unknown routes
+-- are treated as systemic because MGH and other sites often leave route NULL
+-- after the drug concept set has already excluded topical/non-systemic drugs.
 
 DROP VIEW IF EXISTS :results_schema.view_infection_onset CASCADE;
 
@@ -40,10 +42,14 @@ antibiotics AS (
     de.visit_occurrence_id,
     de.drug_exposure_start_datetime AS abx_start,
     de.route_concept_id,
-    CASE WHEN de.route_concept_id IN (SELECT route_concept_id FROM effective_routes) THEN 1 ELSE 0 END AS is_iv_systemic
+    CASE
+      WHEN de.route_concept_id IS NULL OR de.route_concept_id = 0 THEN 1
+      WHEN de.route_concept_id IN (SELECT route_concept_id FROM effective_routes) THEN 1
+      ELSE 0
+    END AS is_iv_systemic
   FROM :results_schema.view_antibiotics de
 ),
--- STRICT FILTER: Only allow proven systemic/IV.
+-- Retain explicit systemic routes and permissive unknown-route records.
 filtered_antibiotics AS (
   SELECT a.*
   FROM antibiotics a

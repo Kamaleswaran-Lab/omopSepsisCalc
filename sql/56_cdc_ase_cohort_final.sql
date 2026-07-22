@@ -15,6 +15,7 @@ icu_stays AS (
 SELECT DISTINCT ON (ac.person_id, ac.infection_onset)
   ac.person_id,
   vo.visit_occurrence_id,
+  ac.src_name,
   ac.infection_onset::date AS onset_date,
   ac.infection_onset,
   vo.visit_start_datetime AS admit_time,
