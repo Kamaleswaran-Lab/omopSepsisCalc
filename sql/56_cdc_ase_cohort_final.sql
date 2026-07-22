@@ -41,6 +41,18 @@ SELECT DISTINCT ON (ac.person_id, ac.infection_onset)
   CASE WHEN icu.person_id IS NOT NULL THEN 1 ELSE 0 END AS icu_admission,
   od.vaso_init::int AS vasopressor_72h, -- Fixed Boolean cast
   od.vent_init::int AS ventilation_72h, -- Fixed Boolean cast
+  od.lactate_high::int AS lactate_72h,
+  COALESCE(od.renal_dysfunction, false)::int AS renal_dysfunction_72h,
+  COALESCE(od.hepatic_dysfunction, false)::int AS hepatic_dysfunction_72h,
+  COALESCE(od.hematologic_dysfunction, false)::int AS hematologic_dysfunction_72h,
+  GREATEST(
+    od.vaso_init::int,
+    od.vent_init::int,
+    od.lactate_high::int,
+    COALESCE(od.renal_dysfunction, false)::int,
+    COALESCE(od.hepatic_dysfunction, false)::int,
+    COALESCE(od.hematologic_dysfunction, false)::int
+  ) AS organ_dysfunction,
   GREATEST(CASE WHEN icu.person_id IS NOT NULL THEN 1 ELSE 0 END, od.vaso_init::int, od.vent_init::int) AS organ_support,
   
   -- Outcomes

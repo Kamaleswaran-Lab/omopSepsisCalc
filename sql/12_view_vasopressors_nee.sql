@@ -4,6 +4,7 @@
 CREATE OR REPLACE VIEW :results_schema.view_vasopressors_nee AS
 SELECT
   de.person_id,
+  de.visit_occurrence_id,
   COALESCE(de.drug_exposure_start_datetime, de.drug_exposure_start_date::timestamp) AS start_datetime,
   COALESCE(
     de.drug_exposure_end_datetime,

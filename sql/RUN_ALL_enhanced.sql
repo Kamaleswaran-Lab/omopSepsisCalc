@@ -77,10 +77,10 @@ DROP TABLE IF EXISTS :results_schema.sepsis3_enhanced_collapsed CASCADE;
 \ir 41_create_sepsis3_collapsed_48h.sql
 
 -- 7. CDC ASE
-DROP TABLE IF EXISTS :results_schema.ase_parameters CASCADE;
+DROP TABLE IF EXISTS :results_schema.cdc_ase_parameters CASCADE;
 \ir 50_cdc_ase_parameters.sql
 
-DROP TABLE IF EXISTS :results_schema.ase_blood_cultures CASCADE;
+DROP TABLE IF EXISTS :results_schema.cdc_ase_cultures CASCADE;
 \ir 51_cdc_ase_blood_cultures.sql
 
 DROP TABLE IF EXISTS :results_schema.ase_qad CASCADE;

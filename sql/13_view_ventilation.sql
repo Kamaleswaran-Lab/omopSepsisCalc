@@ -4,6 +4,7 @@
 CREATE OR REPLACE VIEW :results_schema.view_ventilation AS
 SELECT
   po.person_id,
+  po.visit_occurrence_id,
   COALESCE(po.procedure_datetime, po.procedure_date::timestamp) AS start_datetime,
   COALESCE(po.procedure_datetime, po.procedure_date::timestamp) + interval '1 day' AS end_datetime
 FROM :cdm_schema.procedure_occurrence po
