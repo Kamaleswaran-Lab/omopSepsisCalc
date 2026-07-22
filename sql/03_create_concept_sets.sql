@@ -2,6 +2,7 @@
 -- Canonical concept sets and vocabulary validation for the OMOP SOFA pipeline.
 -- UPDATED 2026-05-02 Site A: 
 --   - removed invalid 37026905 (FiO2) and 4145896 (ventilation)
+--   - removed deprecated 3035616 (bilirubin) now replaced by valid bilirubin concepts
 --   - added FiO2 3024882, ventilation B2AI, RRT B2AI, ECMO
 --   - antibiotic expansion now excludes non-systemic routes via dose form + route relationships
 --   - validation now uses portable SQL cast exception instead of DO block or psql \if
@@ -30,7 +31,6 @@ VALUES
     ('lactate', 3014111, 'Measurement', true, false, 'ATHENA', 'Lactate in Serum or Plasma'),
     ('lactate', 3008037, 'Measurement', true, false, 'ATHENA', 'Lactate in Venous blood'),
     ('bilirubin', 3024128, 'Measurement', true, false, 'ATHENA', 'Bilirubin.total'),
-    ('bilirubin', 3035616, 'Measurement', false, false, 'MGH validated', 'Bilirubin total fallback'),
     ('bilirubin', 3014661, 'Measurement', false, false, 'MGH validated', 'Bilirubin total fallback'),
     ('bilirubin', 3013721, 'Measurement', false, false, 'MGH validated', 'Bilirubin total fallback'),
     ('bilirubin', 3013682, 'Measurement', false, false, 'CHORUS fallback', 'Bilirubin fallback'),

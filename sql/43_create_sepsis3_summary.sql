@@ -1,4 +1,4 @@
--- 42_create_sepsis3_summary.sql
+-- 43_create_sepsis3_summary.sql
 -- Summary of the final collapsed Sepsis-3 cohort
 
 DROP TABLE IF EXISTS :results_schema.sepsis3_summary CASCADE;
