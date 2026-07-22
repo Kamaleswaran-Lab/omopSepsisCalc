@@ -22,7 +22,7 @@ WHERE (
   od.vaso_init
   OR od.vent_init
   OR od.lactate_high
-  OR od.renal_dysfunction
-  OR od.hepatic_dysfunction
-  OR od.hematologic_dysfunction
+  OR od.aki_init
+  OR od.hepatic_init
+  OR od.hematologic_init
 );

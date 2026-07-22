@@ -45,13 +45,16 @@ SELECT DISTINCT ON (ac.person_id, ac.infection_onset)
   COALESCE(od.renal_dysfunction, false)::int AS renal_dysfunction_72h,
   COALESCE(od.hepatic_dysfunction, false)::int AS hepatic_dysfunction_72h,
   COALESCE(od.hematologic_dysfunction, false)::int AS hematologic_dysfunction_72h,
+  COALESCE(od.aki_init, false)::int AS aki_72h,
+  COALESCE(od.hepatic_init, false)::int AS hepatic_72h,
+  COALESCE(od.hematologic_init, false)::int AS hematologic_72h,
   GREATEST(
     od.vaso_init::int,
     od.vent_init::int,
     od.lactate_high::int,
-    COALESCE(od.renal_dysfunction, false)::int,
-    COALESCE(od.hepatic_dysfunction, false)::int,
-    COALESCE(od.hematologic_dysfunction, false)::int
+    COALESCE(od.aki_init, false)::int,
+    COALESCE(od.hepatic_init, false)::int,
+    COALESCE(od.hematologic_init, false)::int
   ) AS organ_dysfunction,
   GREATEST(CASE WHEN icu.person_id IS NOT NULL THEN 1 ELSE 0 END, od.vaso_init::int, od.vent_init::int) AS organ_support,
   

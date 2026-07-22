@@ -71,10 +71,13 @@ SELECT
   -- 3. Lactate >= 2.0 mmol/L (+/-2 days)
   (COALESCE(lw.max_lactate, 0) >= 2.0) AS lactate_high,
 
-  -- 4. Renal: creatinine at least doubled from baseline.
+  -- 4. Renal: creatinine at least doubled from baseline or rises by >= 0.5 mg/dL.
   COALESCE(
     lw.baseline_creatinine > 0
-    AND lw.max_creatinine >= 2.0 * lw.baseline_creatinine,
+    AND (
+      lw.max_creatinine >= 2.0 * lw.baseline_creatinine
+      OR lw.max_creatinine - lw.baseline_creatinine >= 0.5
+    ),
     false
   ) AS renal_dysfunction,
 
@@ -94,13 +97,37 @@ SELECT
     false
   ) AS hematologic_dysfunction,
 
+  COALESCE(
+    lw.baseline_creatinine > 0
+    AND (
+      lw.max_creatinine >= 2.0 * lw.baseline_creatinine
+      OR lw.max_creatinine - lw.baseline_creatinine >= 0.5
+    ),
+    false
+  ) AS aki_init,
+  COALESCE(
+    lw.baseline_bilirubin > 0
+    AND lw.max_bilirubin >= 2.0
+    AND lw.max_bilirubin >= 2.0 * lw.baseline_bilirubin,
+    false
+  ) AS hepatic_init,
+  COALESCE(
+    lw.baseline_platelets >= 100
+    AND lw.min_platelets < 100
+    AND lw.min_platelets <= 0.5 * lw.baseline_platelets,
+    false
+  ) AS hematologic_init,
+
   lw.max_lactate,
   lw.max_creatinine,
   lw.baseline_creatinine,
+  lw.max_creatinine - lw.baseline_creatinine AS creatinine_delta,
   lw.max_bilirubin,
   lw.baseline_bilirubin,
+  lw.max_bilirubin - lw.baseline_bilirubin AS bilirubin_delta,
   lw.min_platelets,
-  lw.baseline_platelets
+  lw.baseline_platelets,
+  lw.baseline_platelets - lw.min_platelets AS platelet_drop
 
 FROM :results_schema.cdc_ase_cultures bc
 JOIN lab_windows lw
